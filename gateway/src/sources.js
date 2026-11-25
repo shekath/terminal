@@ -84,37 +84,52 @@ export async function news(topic) {
 
 // ---------- AIS live vessels (aisstream.io) ----------
 // Keeps the latest position per vessel in memory; clients poll /api/ais.
+import WebSocket from 'ws';
+
 const vessels = new Map();
-let aisStatus = process.env.AISSTREAM_API_KEY ? 'connecting' : 'no AISSTREAM_API_KEY set';
+const ais = {
+  status: process.env.AISSTREAM_API_KEY ? 'connecting' : 'no AISSTREAM_API_KEY set',
+  attempts: 0, messages: 0, lastMessageAt: null, connectedAt: null, lastError: null, lastClose: null,
+};
 
 export function startAis() {
-  const key = process.env.AISSTREAM_API_KEY;
-  if (!key || typeof WebSocket === 'undefined') return;
-  const ws = new WebSocket('wss://stream.aisstream.io/v0/stream');
-  ws.onopen = () => {
-    aisStatus = 'live';
-    // Chokepoints and busy approaches: Malacca, Suez/Red Sea, Hormuz, English Channel, Panama, Singapore, Mumbai/JNPT.
+  const key = (process.env.AISSTREAM_API_KEY || '').trim();
+  if (!key) return;
+  ais.attempts += 1;
+  ais.status = ais.attempts > 1 ? 'reconnecting' : 'connecting';
+  const ws = new WebSocket('wss://stream.aisstream.io/v0/stream', { handshakeTimeout: 15000 });
+  ws.on('open', () => {
+    ais.status = 'subscribed (waiting for data)';
+    ais.connectedAt = new Date().toISOString();
+    // Chokepoints and busy approaches: Malacca/Singapore, Red Sea/Suez, Hormuz, English Channel, Panama, Mumbai.
     ws.send(JSON.stringify({
       APIKey: key, FilterMessageTypes: ['PositionReport'],
       BoundingBoxes: [[[0, 95], [8, 105]], [[12, 32], [31, 44]], [[24, 54], [28, 58]], [[48.5, -6], [51.5, 2]], [[7, -81], [10, -78]], [[18, 72], [19.5, 73.2]]],
     }));
-  };
-  ws.onmessage = async (ev) => {
+  });
+  ws.on('message', (buf) => {
     try {
-      const raw = typeof ev.data === 'string' ? ev.data : await ev.data.text();
-      const m = JSON.parse(raw);
+      const m = JSON.parse(buf.toString());
+      if (m.error) { ais.lastError = String(m.error); return; }
       const p = m.Message?.PositionReport, meta = m.MetaData;
       if (!p || !meta) return;
+      ais.status = 'live'; ais.messages += 1; ais.lastMessageAt = new Date().toISOString();
       vessels.set(meta.MMSI, { mmsi: meta.MMSI, name: (meta.ShipName || '').trim(), lat: p.Latitude, lon: p.Longitude, sog: p.Sog, cog: p.Cog, t: Date.now() });
       if (vessels.size > 5000) vessels.delete(vessels.keys().next().value);
     } catch { /* ignore malformed frames */ }
-  };
-  ws.onclose = () => { aisStatus = 'reconnecting'; setTimeout(startAis, 10000); };
-  ws.onerror = () => ws.close();
+  });
+  ws.on('error', (e) => { ais.lastError = e.message; });
+  ws.on('close', (code, reason) => {
+    ais.lastClose = { code, reason: reason.toString(), at: new Date().toISOString() };
+    ais.status = 'disconnected — retrying';
+    // Back off up to 2 minutes so a bad key does not hammer the service.
+    setTimeout(startAis, Math.min(120000, 5000 * ais.attempts));
+  });
 }
 
 export function aisSnapshot() {
   const cutoff = Date.now() - 30 * 60e3;
   const list = [...vessels.values()].filter((v) => v.t > cutoff);
-  return { status: aisStatus, count: list.length, vessels: list };
+  const { status, ...diag } = ais;
+  return { status, diag, count: list.length, vessels: list };
 }

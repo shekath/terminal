@@ -79,6 +79,9 @@ export default function ShipMap() {
           <span className="legend">{LANES.map((l) => <span key={l.name}><i style={{ background: l.color }} />{l.name.split(' ')[0]}</span>)}</span>
         </div>
         <div ref={el} className="map" />
+        {ais.status !== 'live' && ais.diag && (
+          <p className="err small">AIS diagnostics: {ais.diag.lastError || 'no error reported'}{ais.diag.lastClose ? ` · closed ${ais.diag.lastClose.code} ${ais.diag.lastClose.reason}` : ''} · attempts {ais.diag.attempts}</p>
+        )}
         <p className="muted small">Lanes are simplified main-line routes. Live vessels come from AIS receivers at major chokepoints when the server has an aisstream.io key.</p>
       </Panel>
       <Panel title="SHIPPING &amp; TRADE NEWS"><NewsList topic="shipping" limit={25} /></Panel>
