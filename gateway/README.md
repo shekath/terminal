@@ -33,3 +33,14 @@ Notes: history prices are unadjusted for corporate actions; live data is
 stale outside 09:15–15:30 IST. Data is for educational/research use per the
 servers' SEBI disclaimers — confirm NSE's licensing terms before any
 commercial redistribution.
+
+## Behind an HTTPS proxy
+
+Node's `fetch` ignores `HTTPS_PROXY` by default. Behind a proxy (e.g. cloud
+dev sandboxes) start with `NODE_USE_ENV_PROXY=1` and, if the proxy re-signs
+TLS, `NODE_EXTRA_CA_CERTS=<proxy CA bundle>`.
+
+## Status
+
+- Bhavcopy server `https://mcp.nseindia.in/bhavcopy/cm/mcp`: verified (21 tools; bulk quotes, history, breadth).
+- Live CM server: URL not yet confirmed — set `NSE_LIVE_MCP_URL` once known.
