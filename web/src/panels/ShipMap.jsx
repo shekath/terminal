@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { feature, mesh } from 'topojson-client';
+import countries110 from 'world-atlas/countries-110m.json';
 import Panel from './Panel.jsx';
 import { NewsList } from './News.jsx';
 import { fmt } from '../util.js';
@@ -30,25 +32,55 @@ const LANES = [
   { name: 'Europe – Asia via Cape', color: '#8A94A0', pts: [[51.9, 4.1], [43, -10], [30, -16], [10, -20], [-10, -5], [-34.4, 18.5], [-30, 40], [-10, 60], [0, 80], [5.5, 95], [1.3, 104]] },
 ];
 
+// Keep longitudes continuous so routes crossing the date line don't wrap across the whole map.
+const unwrap = (pts) => pts.reduce((out, [lat, lon]) => {
+  const prev = out.at(-1)?.[1];
+  while (prev != null && lon - prev > 180) lon -= 360;
+  while (prev != null && prev - lon > 180) lon += 360;
+  return [...out, [lat, lon]];
+}, []);
+
 export default function ShipMap() {
   const el = useRef(null), map = useRef(null), vesselLayer = useRef(null);
   const [ais, setAis] = useState({ status: 'loading', count: 0 });
+  const [base, setBase] = useState('loading');
   const [layers, setLayers] = useState({ lanes: true, ports: true, choke: true, ships: true });
   const groups = useRef({});
 
   useEffect(() => {
-    const m = L.map(el.current, { worldCopyJump: true, zoomControl: true, attributionControl: true }).setView([20, 60], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 12,
-    }).addTo(m);
-    const lanes = L.layerGroup(LANES.map((l) => L.polyline(l.pts, { color: l.color, weight: 2, opacity: 0.8, dashArray: '6 4' }).bindTooltip(l.name)));
+    const m = L.map(el.current, { worldCopyJump: true, zoomControl: true, attributionControl: true });
+    m.fitBounds([[-50, -125], [65, 150]]);
+    // Base layer bundled with the app (Natural Earth, public domain), so the map renders even when tile servers are blocked.
+    m.createPane('land'); m.getPane('land').style.zIndex = 250;
+    L.geoJSON(feature(countries110, countries110.objects.land), { pane: 'land', interactive: false, style: { color: '#2A3542', weight: 0.6, fillColor: '#141B23', fillOpacity: 1 } }).addTo(m);
+    L.geoJSON(mesh(countries110, countries110.objects.countries, (a, b) => a !== b), { pane: 'land', interactive: false, style: { color: '#263140', weight: 0.5 } }).addTo(m);
+    // Detailed tiles on top when reachable; fall back to a second provider, then to the bundled base only.
+    const providers = [
+      ['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO' }],
+      ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' }],
+    ];
+    let pi = 0, errors = 0, tiles;
+    const useTiles = () => {
+      tiles?.remove(); errors = 0;
+      if (pi >= providers.length) { setBase('bundled outline (tile servers unreachable)'); return; }
+      const [url, o] = providers[pi];
+      tiles = L.tileLayer(url, { ...o, maxZoom: 12 }).addTo(m);
+      tiles.on('tileload', () => setBase(pi === 0 ? 'CARTO dark' : 'Esri dark gray'));
+      tiles.on('tileerror', () => { if (++errors >= 4) { pi += 1; useTiles(); } });
+    };
+    useTiles();
+    // Leaflet measures its container once; re-measure after layout and on resize.
+    setTimeout(() => m.invalidateSize(), 50);
+    const ro = new ResizeObserver(() => m.invalidateSize());
+    ro.observe(el.current);
+    const lanes = L.layerGroup(LANES.map((l) => L.polyline(unwrap(l.pts), { color: l.color, weight: 2, opacity: 0.8, dashArray: '6 4' }).bindTooltip(l.name)));
     const ports = L.layerGroup(PORTS.map(([n, lat, lon, teu]) => L.circleMarker([lat, lon], { radius: 3 + Math.sqrt(teu) * 1.3, color: '#4FC3F7', weight: 1, fillOpacity: 0.35 }).bindPopup(`<b>${n}</b><br>~${teu}M TEU / year`)));
     const choke = L.layerGroup(CHOKEPOINTS.map(([n, lat, lon]) => L.marker([lat, lon], { icon: L.divIcon({ className: 'choke', html: '◆', iconSize: [14, 14] }) }).bindTooltip(n)));
     vesselLayer.current = L.layerGroup();
     groups.current = { lanes, ports, choke, ships: vesselLayer.current };
     Object.values(groups.current).forEach((g) => g.addTo(m));
     map.current = m;
-    return () => m.remove();
+    return () => { ro.disconnect(); m.remove(); };
   }, []);
 
   useEffect(() => {
@@ -82,7 +114,7 @@ export default function ShipMap() {
         {ais.status !== 'live' && ais.diag && (
           <p className="err small">AIS diagnostics: {ais.diag.lastError || 'no error reported'}{ais.diag.lastClose ? ` · closed ${ais.diag.lastClose.code} ${ais.diag.lastClose.reason}` : ''} · attempts {ais.diag.attempts}</p>
         )}
-        <p className="muted small">Lanes are simplified main-line routes. Live vessels come from AIS receivers at major chokepoints when the server has an aisstream.io key.</p>
+        <p className="muted small">Base map: {base}. Lanes are simplified main-line routes. Live vessels come from AIS receivers at major chokepoints when the server has an aisstream.io key.</p>
       </Panel>
       <Panel title="SHIPPING &amp; TRADE NEWS"><NewsList topic="shipping" limit={25} /></Panel>
     </>
