@@ -1,0 +1,19 @@
+{
+  "name": "terminal-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Data gateway: connects to NSE MCP servers and exposes REST + SSE for the terminal UI",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "check": "node src/check.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "express": "^4.21.2"
+  }
+}
