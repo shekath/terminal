@@ -57,3 +57,25 @@ table{width:100%;border-collapse:collapse}
 .ask-f input{flex:1 1 300px;background:#000;border:1px solid var(--acc);color:#fff;font:14px 'IBM Plex Mono';padding:10px}
 .ask-f button{background:var(--acc);color:#000;border:0;padding:10px 18px;font-weight:600}
 .foot{display:flex;flex-wrap:wrap;gap:16px;padding:5px 12px;background:var(--p2);border-top:1px solid var(--line);color:var(--mute)}.foot .right{margin-left:auto}
+.tape{overflow:hidden;white-space:nowrap;background:#050608;border-bottom:1px solid var(--line);padding:3px 0}
+.tape-in{display:inline-flex;gap:28px;padding-left:100%;animation:tape 40s linear infinite}
+.tape-in span b{color:#fff;font-weight:500}.tape-in em{font-style:normal}
+@keyframes tape{to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.tape-in{animation:none;padding-left:12px}}
+.pane-l{font-size:10px;color:var(--mute);padding:4px 0 0}
+.adv .toolbar button{padding:3px 8px;font-size:11px}
+.selrow{background:#18202A}
+.flash-up{animation:fu .6s}.flash-dn{animation:fd .6s}
+@keyframes fu{from{background:rgba(61,214,140,.45)}}@keyframes fd{from{background:rgba(255,107,107,.45)}}
+.book td{padding:1px 6px}.book .depth{width:40%;position:relative}.book .depth i{position:absolute;right:0;top:2px;bottom:2px}
+.book i.a{background:rgba(255,107,107,.25)}.book i.b{background:rgba(61,214,140,.25)}
+.book .spread td{text-align:center;color:var(--acc);padding:4px}
+.news{list-style:none;margin:0;padding:0}.news li{border-bottom:1px solid #12171C}
+.news a{display:flex;flex-direction:column;gap:2px;padding:7px 2px;text-decoration:none}
+.news a:hover{background:#121820}.nmeta{color:var(--mute);font-size:10px}.ntitle{color:#E6EAEE;font:13px/1.35 Inter,sans-serif}
+.search{display:flex;gap:8px;align-items:center;margin-bottom:6px}.search input{flex:1;background:#000;border:1px solid var(--line);color:#fff;font:inherit;padding:6px}
+.map{height:560px;background:#0A0E12}
+.leaflet-container{background:#0A0E12;font-family:'IBM Plex Mono',monospace}
+.choke{color:#F5A524;font-size:13px;line-height:14px;text-align:center;text-shadow:0 0 4px #000}
+.linkbtn{background:none;border:0;color:var(--acc)}
+.legend span{display:inline-flex;gap:4px;align-items:center;margin-left:6px}

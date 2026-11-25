@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Panel from './Panel.jsx';
 
-const EXAMPLES = ['chart reliance', 'backtest infy 10 40', 'compare tcs infy wipro hcltech', 'top gainers', 'sector heatmap', 'market breadth'];
+const EXAMPLES = ['bitcoin live', 'shipping map', 'world markets', 'crypto news', 'chart reliance', 'backtest infy 10 40', 'compare tcs infy wipro hcltech', 'top gainers', 'sector heatmap', 'market breadth'];
 
 // Rule-based intent router (no LLM wired yet). Maps phrases to functions.
 export function interpret(q) {
@@ -12,6 +12,10 @@ export function interpret(q) {
   const nums = words.filter((w) => /^\d+$/.test(w));
   if (/backtest|strategy|crossover/.test(t)) return `BT ${syms[0] || 'RELIANCE'} ${nums.join(' ')}`;
   if (/compare|\bvs\b|versus|relative/.test(t)) return `CMP ${syms.join(' ')}`;
+  if (/bitcoin|btc|crypto|ethereum|eth\b|solana/.test(t)) return `CRYP ${/eth/.test(t) ? 'ETH' : /sol/.test(t) ? 'SOL' : 'BTC'}`;
+  if (/ship|vessel|port|map|freight/.test(t)) return 'MAP';
+  if (/news|headline/.test(t)) return 'N';
+  if (/global|world|s&p|nasdaq|dow|ftse|nikkei|gold|oil|fx|dollar/.test(t)) return 'WEI';
   if (/gainer|loser|mover/.test(t)) return 'MOV';
   if (/heat|sector/.test(t)) return 'HEAT';
   if (/breadth|mood|vix|advance/.test(t)) return 'MOOD';

@@ -31,8 +31,12 @@ Type in the command line (`/` to focus), e.g. `RELIANCE GP`, `INFY BT 10 40`, `C
 | Code | Function |
 |---|---|
 | LP | Launchpad: 6-index monitor (area + MA20 + volume), watchlist with sparklines & heat cells, sector movers heat grid, breadth & India VIX |
-| GP | Candlestick/line chart, SMA 20/50, volume, 1M–2Y ranges, 52-week stats |
+| GP | Advanced chart: candles/line, SMA 20/50/200, EMA 21, Bollinger, volume, RSI & MACD panes, OHLC crosshair legend, 52-week stats |
 | BT | SMA-crossover backtest: signals on chart, P&L curve, stats (return, win rate, drawdown, Sharpe), grid-search optimizer |
+| CRYP | Realtime crypto (Binance public streams): live table, candles 1m–1d with live bar, order book (100 ms), time & sales |
+| WEI | World indices & commodities (Stooq daily), advanced chart, USD FX crosses (ECB) |
+| N | News wire by topic (markets, India, economy, crypto, shipping) from public RSS, headline filter |
+| MAP | Shipping map: main trade lanes, top container ports, chokepoints, live AIS vessels (needs `AISSTREAM_API_KEY`) |
 | HEAT | NSE index heatmap, 1D–1Y |
 | MOV | Top gainers/losers across NSE |
 | CMP | Rebased relative performance of up to 6 symbols + drawdowns |
@@ -42,3 +46,10 @@ Type in the command line (`/` to focus), e.g. `RELIANCE GP`, `INFY BT 10 40`, `C
 
 Charts use TradingView lightweight-charts (Apache-2.0; attribution logo shown as required).
 Data: NSE bhavcopy MCP — daily, unadjusted, educational/research use.
+
+## Optional server settings
+
+| Env var | Enables |
+|---|---|
+| `AISSTREAM_API_KEY` | Live vessel positions on MAP (free key from aisstream.io) |
+| `NSE_LIVE_MCP_URL` | NSE intraday quotes/movers once the live server URL is known |

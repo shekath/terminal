@@ -8,14 +8,17 @@
     "build": "vite build web",
     "start": "node gateway/src/server.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
+    "@vitejs/plugin-react": "4.3.4",
     "express": "4.21.2",
+    "leaflet": "^1.9.4",
     "lightweight-charts": "4.2.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "@vitejs/plugin-react": "4.3.4",
     "vite": "5.4.11"
   }
 }

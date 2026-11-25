@@ -3,6 +3,8 @@ import Panel, { useAsync, Status } from './Panel.jsx';
 import Chart from './Chart.jsx';
 import { api, indexHistory, stockHistory } from '../api.js';
 import { fmt, pct, tone, sma } from '../util.js';
+import { useTickers, PAIRS } from './Crypto.jsx';
+import { NewsList } from './News.jsx';
 
 const INDICES = ['Nifty 50', 'Nifty Bank', 'Nifty IT', 'Nifty Financial Services', 'Nifty Midcap 100', 'India VIX'];
 export const WATCH = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'BHARTIARTL', 'SBIN', 'ITC', 'LT', 'HINDUNILVR', 'AXISBANK', 'KOTAKBANK'];
@@ -78,6 +80,8 @@ export default function Launchpad({ go }) {
       </Panel>
       <Watchlist go={go} />
       <MoversHeat go={go} />
+      <CryptoMini go={go} />
+      <Panel span={2} title="TOP NEWS" right={<button className="linkbtn" onClick={() => go('N')}>N ›</button>}><NewsList topic="all" limit={12} /></Panel>
       <Panel title="BREADTH & VOLATILITY">
         <Status s={mood} />
         {m && <>
@@ -99,5 +103,17 @@ export function Bar({ label, up, down }) {
   return (
     <div className="bar"><div className="bar-l"><span>{label}</span><span><b className="up">{up}</b> / <b className="dn">{down}</b></span></div>
       <div className="bar-t"><div style={{ width: `${p}%` }} /></div></div>
+  );
+}
+
+function CryptoMini({ go }) {
+  const t = useTickers(PAIRS.slice(0, 8));
+  return (
+    <Panel title="CRYPTO · LIVE" right={<span className="up">●</span>}>
+      <table className="grid-t"><tbody>
+        {PAIRS.slice(0, 8).map((p) => { const x = t[p]; const c = x ? (x.last / x.open - 1) * 100 : null; return (
+          <tr key={p} className="click" onClick={() => go(`CRYP ${p.replace('USDT', '')}`)}><td className="w">{p.replace('USDT', '')}</td><td>{x ? fmt(x.last, x.last < 10 ? 4 : 2) : '…'}</td><td className={tone(c)}>{pct(c)}</td></tr>); })}
+      </tbody></table>
+    </Panel>
   );
 }

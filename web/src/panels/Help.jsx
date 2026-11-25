@@ -14,7 +14,7 @@ export default function Help({ go }) {
       </Panel>
       <Panel title="KEYBOARD">
         <table className="kv"><tbody>
-          {[['/', 'Focus command line'], ['Enter', 'Run command (GO)'], ['Tab', 'Accept suggestion'], ['Esc', 'Back to Launchpad'], ['F1', 'Help'], ['F2', 'Movers'], ['F3', 'Heatmap'], ['F4', 'Ask']].map(([k, v]) => <tr key={k}><td className="w">{k}</td><td>{v}</td></tr>)}
+          {[['/', 'Focus command line'], ['Enter', 'Run command (GO)'], ['Tab', 'Accept suggestion'], ['Esc', 'Back to Launchpad'], ['F1', 'Help'], ['F2', 'Movers'], ['F3', 'Heatmap'], ['F4', 'Ask'], ['F5', 'Crypto'], ['F6', 'World'], ['F7', 'News'], ['F8', 'Map']].map(([k, v]) => <tr key={k}><td className="w">{k}</td><td>{v}</td></tr>)}
         </tbody></table>
         <h3 className="sub">COMING NEXT</h3>
         <ul className="muted small">{ROADMAP.map((r) => <li key={r}>{r}</li>)}</ul>
