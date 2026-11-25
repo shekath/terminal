@@ -5,7 +5,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
 export const SERVERS = {
   live: { url: process.env.NSE_LIVE_MCP_URL, token: process.env.NSE_LIVE_MCP_TOKEN },
-  history: { url: process.env.NSE_HISTORY_MCP_URL, token: process.env.NSE_HISTORY_MCP_TOKEN },
+  history: { url: process.env.NSE_HISTORY_MCP_URL || 'https://mcp.nseindia.in/bhavcopy/cm/mcp', token: process.env.NSE_HISTORY_MCP_TOKEN },
 };
 
 const clients = new Map();

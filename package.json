@@ -1,0 +1,21 @@
+{
+  "name": "terminal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Market terminal: Node gateway on NSE MCP data + React UI",
+  "scripts": {
+    "build": "vite build web",
+    "start": "node gateway/src/server.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "express": "4.21.2",
+    "lightweight-charts": "4.2.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.3.4",
+    "vite": "5.4.11"
+  }
+}
