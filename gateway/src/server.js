@@ -53,6 +53,37 @@ app.get('/api/corporate-actions/:symbol', route((q) => cached(`ca:${sym(q.params
 
 app.get('/api/search', route((q) => callTool('history', 'search_symbols', { query: String(q.query.q || '') })));
 
+const H = 60 * 60e3;
+const opt = (v) => (v ? String(v) : 'today');
+
+app.get('/api/index-history', route((q) => cached(`ih:${q.query.name}:${q.query.months}:${q.query.end}`, H, () =>
+  callTool('history', 'get_index_history', { indexName: String(q.query.name || 'Nifty 50'), months: Math.min(Number(q.query.months) || 3, 12), endDate: opt(q.query.end) }))));
+
+app.get('/api/index-snapshot', route((q) => cached(`is:${q.query.filter}:${q.query.date}`, H, () =>
+  callTool('history', 'get_index_snapshot', { date: opt(q.query.date), filter: String(q.query.filter || '') }))));
+
+app.get('/api/index-movers', route((q) => cached(`im:${q.query.period}:${q.query.n}`, H, () =>
+  callTool('history', 'get_index_movers', { date: 'today', period: String(q.query.period || '1D'), n: Number(q.query.n) || 10, scope: 'equity' }))));
+
+app.get('/api/top-movers', route((q) => cached(`tm:${q.query.direction}:${q.query.n}:${q.query.date}`, H, () =>
+  callTool('history', 'get_top_movers', { date: q.query.date || new Date().toISOString().slice(0, 10), n: Number(q.query.n) || 20, direction: q.query.direction === 'loss' ? 'loss' : 'gain' }))));
+
+app.get('/api/mood', route(() => cached('mood', H, () => callTool('history', 'get_market_mood', { date: 'today' }))));
+
+app.get('/api/compare', route((q) => {
+  const symbols = String(q.query.symbols || '').split(',').map(sym).filter(Boolean).slice(0, 10);
+  return cached(`cmp:${symbols}:${q.query.months}`, H, () => callTool('history', 'compare_stocks', { symbols, months: Number(q.query.months) || 6 }));
+}));
+
+app.get('/api/vs-index/:symbol', route((q) => cached(`vs:${sym(q.params.symbol)}:${q.query.index}`, H, () =>
+  callTool('history', 'get_stock_vs_index', { symbol: sym(q.params.symbol), indexName: String(q.query.index || 'Nifty 50'), months: Number(q.query.months) || 12, date: 'today' }))));
+
+app.get('/api/52w/:symbol', route((q) => cached(`52:${sym(q.params.symbol)}`, H, () =>
+  callTool('history', 'get_52_week_high_low', { symbol: sym(q.params.symbol) }))));
+
+// Serve the built web app if present.
+app.use(express.static(new URL('../../web/dist', import.meta.url).pathname));
+
 // SSE stream: pushes watchlist quotes every 60 s (matches the live feed's refresh).
 app.get('/api/stream/quotes', async (req, res) => {
   const symbols = String(req.query.symbols || '').split(',').map(sym).filter(Boolean).slice(0, 25);
