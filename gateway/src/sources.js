@@ -37,6 +37,31 @@ export async function fredHistory(id) {
   }).filter((r) => isFinite(r.close) && r.close !== 0 && r.date >= '2021-01-01').slice(-750);
 }
 
+// Daily file written by the scheduled GitHub workflow (scripts/fetch-global.mjs).
+import { readFile, stat } from 'node:fs/promises';
+const FILE = new URL('../../data/global.json', import.meta.url);
+let fileCache = { mtime: 0, data: null };
+export async function globalFile() {
+  try {
+    const { mtimeMs } = await stat(FILE);
+    if (mtimeMs !== fileCache.mtime) fileCache = { mtime: mtimeMs, data: JSON.parse(await readFile(FILE, 'utf8')) };
+    return fileCache.data;
+  } catch { return null; }
+}
+export const expand = (rows) => rows.map((r) => (r.length === 2
+  ? { date: r[0], open: r[1], high: r[1], low: r[1], close: r[1], volume: 0 }
+  : { date: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] }));
+export function snapshotFromFile(file) {
+  const out = { indices: [], commodities: [], rates: [], generatedAt: file.generatedAt };
+  for (const [symbol, s] of Object.entries(file.series)) {
+    const rows = s.rows, last = rows.at(-1), prev = rows.at(-2);
+    const close = last[last.length === 2 ? 1 : 4], pclose = prev ? prev[prev.length === 2 ? 1 : 4] : null;
+    out[s.group]?.push({ symbol, name: s.name, region: s.region, source: s.source, date: last[0], close,
+      change_pct: pclose ? (close / pclose - 1) * 100 : null, spark: rows.slice(-30).map((r) => r[r.length === 2 ? 1 : 4]) });
+  }
+  return out;
+}
+
 export async function globalSnapshot(list) {
   return Promise.all(list.map(async ([symbol, name, region]) => {
     try {

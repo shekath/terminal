@@ -34,12 +34,12 @@ export default function Global() {
   const majors = ['EUR', 'GBP', 'JPY', 'INR', 'CNY', 'CHF', 'AUD', 'CAD', 'SGD', 'HKD', 'KRW', 'BRL'];
   return (
     <>
-      <Panel title="WORLD INDICES" right={<span className="muted">daily close · FRED</span>}><Status s={g} />{g.data && <Table rows={g.data.indices} pick={setSel} sel={sel.symbol} />}</Panel>
+      <Panel title="WORLD INDICES" right={<span className="muted">daily close · FRED / Stooq{g.data?.generatedAt ? ` · updated ${g.data.generatedAt.slice(0, 10)}` : ''}</span>}><Status s={g} />{g.data && <Table rows={g.data.indices} pick={setSel} sel={sel.symbol} />}</Panel>
       <Panel span={2} title={`GLOBAL CHART · ${sel.name}`}>
         <Status s={h} />
         {bars.length > 0 && <AdvancedChart key={sel.symbol} rows={bars} height={360} defaults={['SMA50', 'SMA200', 'BB']} defaultType="area" />}
       </Panel>
-      <Panel title="ENERGY &amp; US RATES">
+      <Panel title="COMMODITIES &amp; US RATES">
         <Status s={g} />
         {g.data && <><Table rows={g.data.commodities} pick={setSel} sel={sel.symbol} /><h3 className="sub">US TREASURY YIELDS</h3><Table rows={g.data.rates} pick={setSel} sel={sel.symbol} /></>}
       </Panel>

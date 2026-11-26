@@ -1,0 +1,39 @@
+name: Update global market data
+
+on:
+  schedule:
+    # 22:40 UTC Mon–Fri, after the US close; FRED posts most daily series by then.
+    - cron: '40 22 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: global-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/serene-albattani-lokkwf
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Fetch series
+        run: node scripts/fetch-global.mjs
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- data/global.json; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/global.json
+          git commit -m "Update global market data ($(date -u +%Y-%m-%d))"
+          git push

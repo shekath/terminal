@@ -1,7 +1,7 @@
 // REST + SSE gateway the terminal UI talks to. All NSE data comes from the MCP servers.
 import express from 'express';
 import { callTool } from './mcp.js';
-import { GLOBAL, globalSnapshot, fredHistory, fx, news, aisSnapshot, startAis } from './sources.js';
+import { GLOBAL, globalSnapshot, fredHistory, globalFile, snapshotFromFile, expand, fx, news, aisSnapshot, startAis } from './sources.js';
 
 const app = express();
 const cache = new Map();
@@ -84,6 +84,8 @@ app.get('/api/52w/:symbol', route((q) => cached(`52:${sym(q.params.symbol)}`, H,
 
 // Global markets, FX, news, AIS
 app.get('/api/global', route(async () => {
+  const file = await globalFile();
+  if (file) return snapshotFromFile(file);
   const data = await cached('global', 15 * 60e3, async () => {
     const [indices, commodities, rates] = await Promise.all([globalSnapshot(GLOBAL.indices), globalSnapshot(GLOBAL.commodities), globalSnapshot(GLOBAL.rates)]);
     return { indices, commodities, rates };
@@ -92,8 +94,12 @@ app.get('/api/global', route(async () => {
   if (Object.values(data).flat().every((r) => r.error)) cache.delete('global');
   return data;
 }));
-app.get('/api/global-history/:symbol', route((q) => cached(`gh:${q.params.symbol}`, 30 * 60e3, () =>
-  fredHistory(String(q.params.symbol).replace(/[^A-Za-z0-9]/g, '')))));
+app.get('/api/global-history/:symbol', route(async (q) => {
+  const id = String(q.params.symbol).replace(/[^A-Za-z0-9^.]/g, '');
+  const file = await globalFile();
+  if (file?.series[id]) return expand(file.series[id].rows);
+  return cached(`gh:${id}`, 30 * 60e3, () => fredHistory(id));
+}));
 app.get('/api/fx', route((q) => cached(`fx:${q.query.base}`, 30 * 60e3, () => fx(/^[A-Z]{3}$/.test(q.query.base) ? q.query.base : 'USD'))));
 app.get('/api/news', route((q) => cached(`news:${q.query.topic}`, 5 * 60e3, () => news(String(q.query.topic || 'markets')))));
 app.get('/api/ais', (_, res) => res.json(aisSnapshot()));
