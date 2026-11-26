@@ -28,18 +28,21 @@ function Table({ rows, pick, sel }) {
 export default function Global() {
   const g = useAsync(() => api('global'), []);
   const fx = useAsync(() => api('fx?base=USD'), []);
-  const [sel, setSel] = useState({ symbol: '^SPX', name: 'S&P 500' });
+  const [sel, setSel] = useState({ symbol: 'SP500', name: 'S&P 500' });
   const h = useAsync(() => api(`global-history/${encodeURIComponent(sel.symbol)}`), [sel.symbol]);
   const bars = useMemo(() => (h.data || []).map((r) => ({ time: r.date, ...r })), [h.data]);
   const majors = ['EUR', 'GBP', 'JPY', 'INR', 'CNY', 'CHF', 'AUD', 'CAD', 'SGD', 'HKD', 'KRW', 'BRL'];
   return (
     <>
-      <Panel title="WORLD INDICES" right={<span className="muted">daily close · Stooq</span>}><Status s={g} />{g.data && <Table rows={g.data.indices} pick={setSel} sel={sel.symbol} />}</Panel>
+      <Panel title="WORLD INDICES" right={<span className="muted">daily close · FRED</span>}><Status s={g} />{g.data && <Table rows={g.data.indices} pick={setSel} sel={sel.symbol} />}</Panel>
       <Panel span={2} title={`GLOBAL CHART · ${sel.name}`}>
         <Status s={h} />
-        {bars.length > 0 && <AdvancedChart key={sel.symbol} rows={bars} height={360} defaults={['SMA50', 'SMA200', 'BB']} />}
+        {bars.length > 0 && <AdvancedChart key={sel.symbol} rows={bars} height={360} defaults={['SMA50', 'SMA200', 'BB']} defaultType="area" />}
       </Panel>
-      <Panel title="COMMODITIES"><Status s={g} />{g.data && <Table rows={g.data.commodities} pick={setSel} sel={sel.symbol} />}</Panel>
+      <Panel title="ENERGY &amp; US RATES">
+        <Status s={g} />
+        {g.data && <><Table rows={g.data.commodities} pick={setSel} sel={sel.symbol} /><h3 className="sub">US TREASURY YIELDS</h3><Table rows={g.data.rates} pick={setSel} sel={sel.symbol} /></>}
+      </Panel>
       <Panel span={4} title="FX · USD CROSSES" right={<span className="muted">ECB reference rates · {fx.data?.date}</span>}>
         <Status s={fx} />
         <div className="heatgrid">

@@ -34,7 +34,7 @@ Type in the command line (`/` to focus), e.g. `RELIANCE GP`, `INFY BT 10 40`, `C
 | GP | Advanced chart: candles/line, SMA 20/50/200, EMA 21, Bollinger, volume, RSI & MACD panes, OHLC crosshair legend, 52-week stats |
 | BT | SMA-crossover backtest: signals on chart, P&L curve, stats (return, win rate, drawdown, Sharpe), grid-search optimizer |
 | CRYP | Realtime crypto (Binance public streams): live table, candles 1m–1d with live bar, order book (100 ms), time & sales |
-| WEI | World indices & commodities (Stooq daily), advanced chart, USD FX crosses (ECB) |
+| WEI | US/Japan indices, VIX, dollar index, oil & gas, US Treasury yields (FRED daily), advanced chart, USD FX crosses (ECB) |
 | N | News wire by topic (markets, India, economy, crypto, shipping) from public RSS, headline filter |
 | MAP | Shipping map: main trade lanes, top container ports, chokepoints, live AIS vessels (needs `AISSTREAM_API_KEY`) |
 | HEAT | NSE index heatmap, 1D–1Y |

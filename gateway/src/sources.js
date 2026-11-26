@@ -9,32 +9,33 @@ async function text(url) {
   return r.text();
 }
 
-// ---------- Global markets ----------
+// ---------- Global markets (FRED, Federal Reserve Bank of St. Louis; daily, keyless) ----------
 export const GLOBAL = {
   indices: [
-    ['^SPX', 'S&P 500', 'US'], ['^DJI', 'Dow Jones', 'US'], ['^NDQ', 'Nasdaq Comp', 'US'],
-    ['^UKX', 'FTSE 100', 'UK'], ['^DAX', 'DAX', 'DE'], ['^CAC', 'CAC 40', 'FR'],
-    ['^NKX', 'Nikkei 225', 'JP'], ['^HSI', 'Hang Seng', 'HK'], ['^SHC', 'Shanghai Comp', 'CN'], ['^KOSPI', 'KOSPI', 'KR'],
+    ['SP500', 'S&P 500', 'US'], ['DJIA', 'Dow Jones', 'US'], ['NASDAQCOM', 'Nasdaq Comp', 'US'],
+    ['NIKKEI225', 'Nikkei 225', 'JP'], ['VIXCLS', 'VIX (US vol)', 'US'], ['DTWEXBGS', 'US Dollar Index (broad)', 'US'],
   ],
   commodities: [
-    ['GC.F', 'Gold'], ['SI.F', 'Silver'], ['CL.F', 'WTI Crude'], ['CB.F', 'Brent'], ['NG.F', 'Natural Gas'], ['HG.F', 'Copper'],
+    ['DCOILWTICO', 'WTI Crude', 'USD/bbl'], ['DCOILBRENTEU', 'Brent Crude', 'USD/bbl'], ['DHHNGSP', 'Henry Hub Gas', 'USD/MMBtu'],
+  ],
+  rates: [
+    ['DGS2', 'US 2Y Treasury', '%'], ['DGS10', 'US 10Y Treasury', '%'], ['DGS30', 'US 30Y Treasury', '%'], ['T10Y2Y', '10Y–2Y spread', 'pp'],
   ],
 };
 
-export async function stooqHistory(symbol) {
-  const csv = await text(`https://stooq.com/q/d/l/?s=${encodeURIComponent(symbol.toLowerCase())}&i=d`);
-  const lines = csv.trim().split('\n');
-  if (!/^Date,/i.test(lines[0])) throw new Error(`no data for ${symbol}`);
-  return lines.slice(1).map((l) => {
-    const [date, open, high, low, close, volume] = l.split(',');
-    return { date, open: +open, high: +high, low: +low, close: +close, volume: +volume || 0 };
-  }).filter((r) => r.close).slice(-500);
+export async function fredHistory(id) {
+  const csv = await text(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}`);
+  return csv.trim().split('\n').slice(1).map((l) => {
+    const [date, v] = l.split(',');
+    const close = Number(v);
+    return { date, open: close, high: close, low: close, close, volume: 0 };
+  }).filter((r) => isFinite(r.close) && r.close !== 0 && r.date >= '2021-01-01').slice(-750);
 }
 
 export async function globalSnapshot(list) {
   return Promise.all(list.map(async ([symbol, name, region]) => {
     try {
-      const rows = await stooqHistory(symbol);
+      const rows = await fredHistory(symbol);
       const last = rows.at(-1), prev = rows.at(-2);
       return { symbol, name, region, date: last.date, close: last.close, change_pct: prev ? (last.close / prev.close - 1) * 100 : null, spark: rows.slice(-30).map((r) => r.close) };
     } catch (e) { return { symbol, name, region, error: e.message }; }
@@ -56,15 +57,16 @@ export async function fx(base = 'USD') {
 
 // ---------- News (RSS headlines; we store title, link, time, source only) ----------
 export const FEEDS = {
-  markets: [['CNBC', 'https://www.cnbc.com/id/100003114/device/rss/rss.html'], ['MarketWatch', 'https://feeds.content.dowjones.io/public/rss/mw_topstories']],
+  markets: [['MarketWatch', 'https://feeds.content.dowjones.io/public/rss/mw_topstories'], ['MarketWatch Pulse', 'https://feeds.content.dowjones.io/public/rss/mw_marketpulse']],
   india: [['Economic Times', 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms'], ['Livemint', 'https://www.livemint.com/rss/markets']],
   crypto: [['CoinDesk', 'https://www.coindesk.com/arc/outboundfeeds/rss/'], ['Cointelegraph', 'https://cointelegraph.com/rss']],
-  economy: [['CNBC Economy', 'https://www.cnbc.com/id/20910258/device/rss/rss.html'], ['ET Economy', 'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms']],
+  economy: [['ET Economy', 'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms'], ['Livemint Economy', 'https://www.livemint.com/rss/economy']],
   shipping: [['gCaptain', 'https://gcaptain.com/feed/'], ['Splash247', 'https://splash247.com/feed/']],
 };
 
 const tag = (s, t) => (s.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`, 'i')) || [])[1] || '';
-const clean = (s) => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+const clean = (s) => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d))).trim();
 
 export async function news(topic) {
   const feeds = topic === 'all' ? Object.values(FEEDS).flat() : FEEDS[topic] || FEEDS.markets;

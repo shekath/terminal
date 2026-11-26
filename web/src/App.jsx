@@ -113,7 +113,7 @@ export default function App() {
       <main className="work">{body}</main>
       <footer className="foot">
         <span>F1 HELP</span><span>F2 MOV</span><span>F3 HEAT</span><span>F4 ASK</span><span>F5 CRYP</span><span>F6 WEI</span><span>F7 NEWS</span><span>F8 MAP</span><span>ESC LAUNCHPAD</span>
-        <span className="right">Data: NSE (bhavcopy MCP) · Binance (crypto, realtime) · Stooq · ECB · RSS · not investment advice</span>
+        <span className="right">Data: NSE (bhavcopy MCP) · Binance (crypto, realtime) · FRED · ECB · RSS · not investment advice</span>
       </footer>
     </div>
   );

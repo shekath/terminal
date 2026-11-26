@@ -12,9 +12,9 @@ const BASE = {
 export const STUDIES = ['SMA20', 'SMA50', 'SMA200', 'EMA21', 'BB', 'VOL', 'RSI', 'MACD'];
 
 // rows: [{ time, open, high, low, close, volume }]  live: latest bar to upsert (realtime feeds)
-export default function AdvancedChart({ rows, live, height = 420, intraday = false, defaults = ['SMA20', 'SMA50', 'VOL'] }) {
+export default function AdvancedChart({ rows, live, height = 420, intraday = false, defaults = ['SMA20', 'SMA50', 'VOL'], defaultType = 'candle' }) {
   const [on, setOn] = useState(new Set(defaults));
-  const [type, setType] = useState('candle');
+  const [type, setType] = useState(defaultType);
   const [legend, setLegend] = useState(null);
   const main = useRef(null), rsiEl = useRef(null), macdEl = useRef(null);
   const refs = useRef({});

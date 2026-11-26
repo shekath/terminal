@@ -40,10 +40,18 @@ const unwrap = (pts) => pts.reduce((out, [lat, lon]) => {
   return [...out, [lat, lon]];
 }, []);
 
+// AIS receiving areas (match the server's subscription boxes).
+const REGIONS = [
+  ['Malacca / Singapore', [[0, 95], [8, 105]]], ['Red Sea / Suez', [[12, 32], [31, 44]]], ['Hormuz', [[24, 54], [28, 58]]],
+  ['English Channel', [[48.5, -6], [51.5, 2]]], ['Panama', [[7, -81], [10, -78]]], ['Mumbai / JNPT', [[18, 72], [19.5, 73.2]]],
+];
+const inBox = (v, [[a, b], [c, d]]) => v.lat >= a && v.lat <= c && v.lon >= b && v.lon <= d;
+
 export default function ShipMap() {
   const el = useRef(null), map = useRef(null), vesselLayer = useRef(null);
   const [ais, setAis] = useState({ status: 'loading', count: 0 });
   const [base, setBase] = useState('loading');
+  const [updated, setUpdated] = useState(null);
   const [layers, setLayers] = useState({ lanes: true, ports: true, choke: true, ships: true });
   const groups = useRef({});
 
@@ -94,8 +102,12 @@ export default function ShipMap() {
       if (!live) return;
       setAis(d);
       const g = vesselLayer.current; g.clearLayers();
-      d.vessels.forEach((v) => L.circleMarker([v.lat, v.lon], { radius: 2, color: v.sog > 1 ? '#3DD68C' : '#8A94A0', weight: 0, fillOpacity: 0.9 })
-        .bindTooltip(`${v.name || 'MMSI ' + v.mmsi} · ${fmt(v.sog, 1)} kn`).addTo(g));
+      setUpdated(new Date());
+      d.vessels.forEach((v) => {
+        const moving = v.sog > 1;
+        L.circleMarker([v.lat, v.lon], { radius: moving ? 4 : 3, color: '#000', weight: 0.6, fillColor: moving ? '#3DD68C' : '#9AA4AF', fillOpacity: 0.95 })
+          .bindTooltip(`${v.name || 'MMSI ' + v.mmsi} · ${fmt(v.sog, 1)} kn · course ${fmt(v.cog, 0)}°`).addTo(g);
+      });
     }).catch(() => live && setAis({ status: 'unavailable', count: 0 }));
     load();
     const id = setInterval(load, 15000);
@@ -108,15 +120,27 @@ export default function ShipMap() {
       <Panel span={3} title="MAP · GLOBAL SHIPPING" right={<span className={ais.status === 'live' ? 'up' : 'muted'}>AIS: {ais.status} · {ais.count} vessels</span>}>
         <div className="toolbar">
           {[['lanes', 'Trade lanes'], ['ports', 'Top ports'], ['choke', 'Chokepoints'], ['ships', 'Live vessels']].map(([k, l]) => <button key={k} className={layers[k] ? 'on' : ''} onClick={() => toggle(k)} aria-pressed={layers[k]}>{l}</button>)}
+          <span className="sep" />
+          {REGIONS.map(([n, box]) => <button key={n} onClick={() => map.current?.fitBounds(box)} title={`Zoom to ${n}`}>{n} · {(ais.vessels || []).filter((v) => inBox(v, box)).length}</button>)}
+          <button onClick={() => map.current?.fitBounds([[-50, -125], [65, 150]])}>World</button>
           <span className="legend">{LANES.map((l) => <span key={l.name}><i style={{ background: l.color }} />{l.name.split(' ')[0]}</span>)}</span>
         </div>
         <div ref={el} className="map" />
         {ais.status !== 'live' && ais.diag && (
           <p className="err small">AIS diagnostics: {ais.diag.lastError || 'no error reported'}{ais.diag.lastClose ? ` · closed ${ais.diag.lastClose.code} ${ais.diag.lastClose.reason}` : ''} · attempts {ais.diag.attempts}</p>
         )}
-        <p className="muted small">Base map: {base}. Lanes are simplified main-line routes. Live vessels come from AIS receivers at major chokepoints when the server has an aisstream.io key.</p>
+        <p className="muted small"><span className="up">●</span> moving <span style={{ color: '#9AA4AF' }}>●</span> stopped · refreshed every 15 s{updated ? ` · last ${updated.toLocaleTimeString('en-GB')}` : ''}. Base map: {base}. Lanes are simplified main-line routes. Live vessels come from AIS receivers at major chokepoints when the server has an aisstream.io key.</p>
       </Panel>
-      <Panel title="SHIPPING &amp; TRADE NEWS"><NewsList topic="shipping" limit={25} /></Panel>
+      <Panel title="LIVE VESSELS · FASTEST">
+        <table className="grid-t"><thead><tr><th>Vessel</th><th>Knots</th><th>Area</th></tr></thead><tbody>
+          {[...(ais.vessels || [])].sort((a, b) => b.sog - a.sog).slice(0, 15).map((v) => (
+            <tr key={v.mmsi} className="click" onClick={() => map.current?.setView([v.lat, v.lon], 9)}>
+              <td className="w">{v.name || v.mmsi}</td><td>{fmt(v.sog, 1)}</td><td className="muted">{(REGIONS.find(([, b]) => inBox(v, b)) || ['—'])[0]}</td>
+            </tr>))}
+        </tbody></table>
+        <h3 className="sub">SHIPPING &amp; TRADE NEWS</h3>
+        <NewsList topic="shipping" limit={15} />
+      </Panel>
     </>
   );
 }
