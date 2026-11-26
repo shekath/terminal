@@ -133,7 +133,7 @@ export default function ShipMap() {
       </Panel>
       <Panel title="LIVE VESSELS · FASTEST">
         <table className="grid-t"><thead><tr><th>Vessel</th><th>Knots</th><th>Area</th></tr></thead><tbody>
-          {[...(ais.vessels || [])].sort((a, b) => b.sog - a.sog).slice(0, 15).map((v) => (
+          {(ais.vessels || []).filter((v) => v.sog < 50).sort((a, b) => b.sog - a.sog).slice(0, 15).map((v) => (
             <tr key={v.mmsi} className="click" onClick={() => map.current?.setView([v.lat, v.lon], 9)}>
               <td className="w">{v.name || v.mmsi}</td><td>{fmt(v.sog, 1)}</td><td className="muted">{(REGIONS.find(([, b]) => inBox(v, b)) || ['—'])[0]}</td>
             </tr>))}

@@ -83,9 +83,15 @@ app.get('/api/52w/:symbol', route((q) => cached(`52:${sym(q.params.symbol)}`, H,
   callTool('history', 'get_52_week_high_low', { symbol: sym(q.params.symbol) }))));
 
 // Global markets, FX, news, AIS
-app.get('/api/global', route(() => cached('global', 15 * 60e3, async () => ({
-  indices: await globalSnapshot(GLOBAL.indices), commodities: await globalSnapshot(GLOBAL.commodities), rates: await globalSnapshot(GLOBAL.rates),
-}))));
+app.get('/api/global', route(async () => {
+  const data = await cached('global', 15 * 60e3, async () => {
+    const [indices, commodities, rates] = await Promise.all([globalSnapshot(GLOBAL.indices), globalSnapshot(GLOBAL.commodities), globalSnapshot(GLOBAL.rates)]);
+    return { indices, commodities, rates };
+  });
+  // Don't keep a snapshot where every series failed; retry on the next request.
+  if (Object.values(data).flat().every((r) => r.error)) cache.delete('global');
+  return data;
+}));
 app.get('/api/global-history/:symbol', route((q) => cached(`gh:${q.params.symbol}`, 30 * 60e3, () =>
   fredHistory(String(q.params.symbol).replace(/[^A-Za-z0-9]/g, '')))));
 app.get('/api/fx', route((q) => cached(`fx:${q.query.base}`, 30 * 60e3, () => fx(/^[A-Z]{3}$/.test(q.query.base) ? q.query.base : 'USD'))));

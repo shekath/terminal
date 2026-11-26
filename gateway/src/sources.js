@@ -3,10 +3,14 @@
 
 const UA = { 'User-Agent': 'terminal-gateway/0.2' };
 
-async function text(url) {
-  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(15000) });
-  if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}`);
-  return r.text();
+async function text(url, { timeout = 15000, retries = 0 } = {}) {
+  for (let i = 0; ; i++) {
+    try {
+      const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeout) });
+      if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}`);
+      return await r.text();
+    } catch (e) { if (i >= retries) throw e; }
+  }
 }
 
 // ---------- Global markets (FRED, Federal Reserve Bank of St. Louis; daily, keyless) ----------
@@ -24,7 +28,8 @@ export const GLOBAL = {
 };
 
 export async function fredHistory(id) {
-  const csv = await text(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}`);
+  // cosd limits the download to recent data; FRED can be slow from some hosts, so allow more time and one retry.
+  const csv = await text(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}&cosd=2023-01-01`, { timeout: 45000, retries: 1 });
   return csv.trim().split('\n').slice(1).map((l) => {
     const [date, v] = l.split(',');
     const close = Number(v);
